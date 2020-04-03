@@ -9,8 +9,12 @@ repositories {
     mavenCentral()
 }
 
+val ktorVersion = "1.3.1"
+
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation("io.ktor:ktor-server-core:$ktorVersion")
+    implementation("io.ktor:ktor-server-netty:$ktorVersion")
 }
 
 tasks {
