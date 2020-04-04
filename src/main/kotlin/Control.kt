@@ -1,19 +1,19 @@
-import kotlin.reflect.KClass
-
 abstract class Control {
-    abstract fun update(str: String)
+    abstract val name: String
+    abstract fun update(parts: List<String>)
 }
 
-class DoubleControl(var value: Double): Control() {
-    override fun update(str: String) {
-        value = str.toDouble()
+class DoubleControl(override val name: String, var value: Double): Control() {
+    override fun update(parts: List<String>) {
+        value = parts[0].toDouble()
     }
 }
 
-inline fun <reified T: Enum<T>> makeEnumControl(value: T) = EnumControl(value, T::class.java)
+inline fun <reified T: Enum<T>> makeEnumControl(name: String, value: T) = EnumControl(name, value, T::class.java)
 
-class EnumControl<T: Enum<T>>(var value: T, val klass: Class<T>): Control() {
-    override fun update(str: String) {
-       value = java.lang.Enum.valueOf(klass, str)
+class EnumControl<T: Enum<T>>(override val name: String, var value: T, private val klass: Class<T>): Control() {
+    override fun update(parts: List<String>) {
+        val newValue = java.lang.Enum.valueOf(klass, parts[0])
+        value = newValue
     }
 }

@@ -266,15 +266,18 @@ function createChannel(prefix, xb, allowShape) {
 		}
 	});
 
-	var waveforms = isXYZ ? [ "sin", "rtri", "stri", "rsq" ]
+	var waveforms = isXYZ ? [ "sin", "sr3" ]
 	                      : [ "sin", "+tri", "-tri", "10%", "25%", "50%", "75%", "90%" ];
+
+	var waveformEnums = isXYZ ? [ "SIN", "SINR3" ]
+	                      : [ "SIN", "PLUS_TRI", "MINUS_TRI", "SQ10", "SQ25", "SQ50", "SQ75", "SQ90" ];
 
 	wfmButton = createMultistateButton(prefix + "waveform", layouts.waveformButton,
 		waveforms, function(root, layout, td) {
 		td.style.fontSize = "20px";
 		root.updateCallback = function() {
 			var d = {};
-			d[prefix + "wfm"] = root.state;
+			d[prefix + "wfm"] = waveformEnums[root.state];
 			post(d);
 		}
 	});
@@ -347,13 +350,13 @@ var yrotReadout = createReadout("yrot", layout.yrotReadout);
 var xrotSlider = createSlider("xrots", layout.xrotSlider, [ -90, 90 ],
 	function(v) {
 		xrotReadout.setTextContents("X: " + v.toFixed(1) + "\u00B0");
-		post({xrot: (v * 2147483647 / 180).toFixed()});
+		post({xrot: v});
 	}
 );
 var yrotSlider = createSlider("yrots", layout.yrotSlider, [ -90, 90 ],
 	function(v) {
 		yrotReadout.setTextContents("Y: " + v.toFixed(1) + "\u00B0");
-		post({yrot: (v * 2147483647 / 180).toFixed()});
+		post({yrot: v});
 	}
 );
 xrotSlider.setValue(0);
