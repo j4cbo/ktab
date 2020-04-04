@@ -135,16 +135,13 @@ function createChannel(prefix, xb, allowShape) {
 
 	function writeToDict(d) {
 		if (!relative && prefix == "blank")
-			d[prefix] = "0";
+			d[prefix] = "absolute:1";
 		else if (!relative && !isXYZ) {
-			d[prefix] = 0;
-			d[prefix + "mul"] = (absSlider.value * 655.36).toFixed();
+			d[prefix] = "absolute:" + (absSlider.value / 100);
 		} else if (relative && phaseButton.state == 2) {
-			d[prefix] = (multiplier.state + ":" + (phaseSlider.value * 2147483647 / 180).toFixed());
-			if (!isXYZ && prefix != "blank") d[prefix + "mul"] = 65536;
+			d[prefix] = "phase:" + multiplier.state + ":" + phaseSlider.value;
 		} else {
-			d[prefix] = (frequency * 65536).toFixed();
-			if (!isXYZ && prefix != "blank") d[prefix + "mul"] = 65536;
+			d[prefix] = frequency;
 		}
 	}
 
@@ -368,7 +365,7 @@ var masterReadout;
 
 function set_master(f) {
 	master_frequency = f;
-	var d = { master: (f * 65536).toFixed() };
+	var d = { master: f };
 	for (var i = 0; i < channels.length; i++) {
 		channels[i].updateChannel(d);
 	}

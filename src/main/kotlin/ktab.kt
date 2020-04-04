@@ -77,6 +77,16 @@ object Oscillators {
         "blank" to blank
     )
 
+    fun handleUpdates(keys: List<String>) {
+        for (key in keys) {
+            val parts = key.split(":")
+            val oscillator = allOscillators[parts[0]]
+            if (oscillator != null) {
+                oscillator.freq = parts[1].toDouble()
+            }
+        }
+    }
+
     private fun Double.scaleForColor() = (this * UShort.MAX_VALUE.toDouble()).toInt().toUShort()
     fun Double.scaleForXY() = (this * Short.MAX_VALUE.toDouble() / 3.0).toInt().toShort()
 
@@ -123,6 +133,7 @@ fun Application.module() {
                 when (frame) {
                     is Frame.Text -> {
                         val text = frame.readText()
+                        Oscillators.handleUpdates(text.split(" "))
                         call.application.environment.log.info(text)
                     }
                 }
@@ -181,6 +192,7 @@ fun producerThread(lib: EtherDreamLib, dac: Pointer) {
 }
 
 fun main(args: Array<String>) {
+/*
     val lib = Native.load("/Users/jacob/Code/j4cDAC/driver/libetherdream/etherdream.dylib", EtherDreamLib::class.java)
     lib.etherdream_lib_start()
     sleep(1000)
@@ -188,10 +200,12 @@ fun main(args: Array<String>) {
 
     val dac = lib.etherdream_get(0)
     println("connect returned ${lib.etherdream_connect(dac)}")
-
-    thread(isDaemon = true) {
+    
+    thread(isDaemon = true, start = false) {
         producerThread(lib, dac)
     }
+
+ */
 
     embeddedServer(Netty, 8080, watchPaths = listOf("BlogAppKt"), module = Application::module).start()
 }
