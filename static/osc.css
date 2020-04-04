@@ -1,0 +1,195 @@
+﻿html {
+	height: 100%;
+	width: 100%;
+}
+
+html, body, div, a.ns {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-webkit-tap-highlight-color: rgba(0,0,0,0);
+	-ms-touch-action: none;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+body {
+	overflow: hidden;
+	background: black;
+	color: white;
+	position: absolute;
+	margin: 0;
+	padding: 0;
+	border: 0px none;
+	width: 100%;
+	-webkit-box-sizing: border-box;
+	height: 100%;
+}
+
+.sliderv {
+	position: absolute;
+	border: 1px solid red;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+}
+
+.sliderv div {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	border: 0px none;
+	background: red;
+}
+
+canvas.quadrilateral {
+	position: absolute;
+	border: 1px solid blue;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+}
+
+.quadrilateralproxy {
+	position: absolute;
+	outline: 1px solid green;
+}
+
+td {
+	border: 0px none;
+	vertical-align: middle;
+	border-spacing: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.channelreadout {
+	font-size: 10px;
+	white-space: pre-line;
+}
+
+.channelreadout:first-line {
+	font-size: 14px;
+}
+
+.readout, .button {
+	position: absolute;
+	display: table;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	border: 1px solid blue;
+	text-align: center;
+	background: black;
+	color: #888;
+}
+
+.button:active {
+	background: #008;
+}
+
+.multiplier {
+	position: absolute;
+	border: 1px solid green;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	line-height: 120px;
+	text-align: center;
+	font-size: 30px;
+	font-family: verdana sans-serif;
+}
+
+.multiplier button {
+	display: block;
+	width: 100%;
+	height: 50%;
+	background: transparent;
+	left: 0;
+	position: absolute;
+	color: white;
+	font-weight: bold;
+	font-size: 20px;
+	text-align: center;
+	border: 5px solid transparent;
+	line-height: 10px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+}
+
+.multiplier .ubtn, .multiplier .dbtn {
+	display: block;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+	width: 100%;
+	height: 50%;
+	background: transparent;
+	left: 0;
+	position: absolute;
+	color: white;
+	font-weight: bold;
+	font-size: 20px;
+	text-align: center;
+	border: 5px solid transparent;
+	line-height: 35px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+}
+
+.multiplier .ubtn {
+	top: 0;
+	-webkit-border-radius: 4px 4px 0 0;
+	text-align: 2px;
+	border-bottom: 15px solid transparent;
+}
+
+.multiplier .dbtn {
+	bottom: 0;
+	-webkit-border-radius: 0 0 4px 4px;
+	border-top: 15px solid transparent;
+}
+
+.multiplier .red:active { border: 5px solid red; }
+.multiplier .darkgrey:active { border: 5px solid darkgrey; }
+.multiplier .green:active { border: 5px solid green; }
+.multiplier .blue:active { border: 5px solid blue; }
+
+.multiplier .ubtn:active {
+	border-bottom: 15px solid transparent !important;
+}
+
+.multiplier .dbtn:active {
+	border-top: 15px solid transparent !important;
+}
+
+.button.red:active { background: darkred; }
+.button.green:active { background: darkgreen; }
+.button.blue:active { background: darkblue; }
+
+.button td:hover, .sliderv:hover, .multiplier:hover {
+	cursor: pointer;
+}
+
+#saveForm {
+	display: none;
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	margin: 0;
+	padding: 0;
+	background: rgba(0, 0, 0, 0.7);
+	z-index: 5;
+}
+
+#saveForm input {
+	position: absolute;
+	width: 30%;
+	left: 35%;
+	top: 20%;
+	font-size: 30px;
+}
