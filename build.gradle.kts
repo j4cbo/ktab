@@ -13,10 +13,11 @@ val ktorVersion = "1.3.1"
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    compile("ch.qos.logback:logback-classic:1.2.3")
+    implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     implementation("io.ktor:ktor-server-netty:$ktorVersion")
     implementation("io.ktor:ktor-websockets:$ktorVersion")
+    implementation("net.java.dev.jna:jna:5.5.0")
 }
 
 tasks {
