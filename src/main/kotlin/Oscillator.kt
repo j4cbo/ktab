@@ -1,7 +1,7 @@
 import kotlin.math.sin
 
 @ExperimentalUnsignedTypes
-class Oscillator(val name: String, var freq: Double, var state: ULong = 0U) {
+open class Oscillator(val name: String, var freq: Double, var state: ULong = 0U): Control() {
 
     enum class Waveform { SIN, PLUS_TRI, MINUS_TRI, SQ10, SQ25, SQ50, SQ75, SQ90 }
 
@@ -23,4 +23,19 @@ class Oscillator(val name: String, var freq: Double, var state: ULong = 0U) {
     fun advance() {
         state += ((UInt.MAX_VALUE / PPS.toUInt()).toDouble() * freq).toUInt()
     }
+
+    override fun update(str: String) {
+        freq = str.toDouble()
+    }
+}
+
+@ExperimentalUnsignedTypes
+class OscillatorWithWaveform(
+    name: String,
+    freq: Double,
+    state: ULong = 0U,
+    waveform: Oscillator.Waveform = Oscillator.Waveform.SIN
+) : Oscillator(name, freq, state) {
+    val waveform = makeEnumControl(waveform)
+    fun render() = render(waveform.value)
 }

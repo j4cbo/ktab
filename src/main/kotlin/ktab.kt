@@ -29,68 +29,65 @@ import kotlin.math.sin
 
 const val PPS = 30000
 
-class WaveformControl(var waveform: Oscillator.Waveform = Oscillator.Waveform.SIN)
-
 @ExperimentalUnsignedTypes
 object Oscillators {
 
-    val master = Oscillator("master", 75.0)
-    val x = Oscillator("x", 74.8)
-    val y = Oscillator("y", 75.0)
-    val z = Oscillator("z", 75.0)
-    val r = Oscillator("r", 74.5)
-    val g = Oscillator("g", 75.0)
-    val b = Oscillator("b", 75.5)
-    val blank = Oscillator("blank", 0.0)
+    private val master = Oscillator("master", 75.0)
+    private val xOsc = OscillatorWithWaveform("x", 74.8)
+    private val yOsc = OscillatorWithWaveform("y", 75.0)
+    private val zOsc = OscillatorWithWaveform("z", 75.0)
+    private val redOsc = OscillatorWithWaveform("r", 74.5)
+    private val greenOsc = OscillatorWithWaveform("g", 75.0)
+    private val blueOsc = OscillatorWithWaveform("b", 75.5)
+    private val blankOsc = OscillatorWithWaveform("blank", 0.0)
+    private val xRot = DoubleControl(0.0)
+    private val yRot = DoubleControl(0.0)
 
-    val rWaveform = WaveformControl()
-    val gWaveform = WaveformControl()
-    val bWaveform = WaveformControl()
-    val blankWaveform = WaveformControl()
+    private val allOscillators = listOf(master, xOsc, yOsc, zOsc, redOsc, greenOsc, blueOsc, blankOsc)
 
-    val allOscillators = mapOf(
-        "master" to master,
-        "x" to x,
-        "y" to y,
-        "z" to z,
-        "r" to r,
-        "g" to g,
-        "b" to b,
-        "blank" to blank
+    private val allControls= mapOf(
+        "master" to master, "x" to xOsc, "y" to yOsc, "z" to zOsc,
+        "r" to redOsc, "g" to greenOsc, "b" to blueOsc, "blank" to blankOsc,
+        "xrot" to xRot, "yrot" to yRot,
+        "xwfm" to xOsc.waveform, "ywfm" to yOsc.waveform, "zwfm" to zOsc.waveform,
+        "rwfm" to redOsc.waveform, "gwfm" to greenOsc.waveform, "bwfm" to blueOsc.waveform,
+        "blankwfm" to blankOsc.waveform
     )
 
     fun handleUpdates(keys: List<String>) {
         for (key in keys) {
             val parts = key.split(":")
-            val oscillator = allOscillators[parts[0]]
-            if (oscillator != null) {
-                oscillator.freq = parts[1].toDouble()
+
+            val control = allControls[parts[0]]
+            if (control != null) {
+                control.update(parts[1])
             }
         }
     }
 
     private fun Double.scaleForColor() = (this * UShort.MAX_VALUE.toDouble()).toInt().toUShort()
-    fun Double.scaleForXY() = ((this - 0.5) * Short.MAX_VALUE.toDouble()).toInt().toShort()
+    private fun Double.scaleForXY() = ((this - 0.5) * Short.MAX_VALUE.toDouble()).toInt().toShort()
+    private fun DoubleControl.asRadians() = (this.value / 180) * kotlin.math.PI
 
     fun renderToPoint(point: EtherDreamPoint) {
-        point.r = (r.render(rWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
-        point.g = (g.render(gWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
-        point.b = (b.render(bWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
+        val blank = blankOsc.render()
+        point.r = (redOsc.render() * blank).scaleForColor()
+        point.g = (greenOsc.render() * blank).scaleForColor()
+        point.b = (blueOsc.render() * blank).scaleForColor()
 
-        val intX = x.render(Oscillator.Waveform.SIN)
-        val intY = y.render(Oscillator.Waveform.SIN)
-        val intZ = z.render(Oscillator.Waveform.SIN)
+        val x = xOsc.render(Oscillator.Waveform.SIN)
+        val y = yOsc.render(Oscillator.Waveform.SIN)
+        val z = zOsc.render(Oscillator.Waveform.SIN)
 
-        val xRot = 0.0
-        val yRot = 0.0
+        point.x = (x * cos(yRot.asRadians()) + (z * cos(xRot.asRadians()) + y * sin(xRot.asRadians())) * sin(yRot.asRadians())).scaleForXY()
+        point.y = (y * cos(xRot.asRadians()) - z * sin(xRot.asRadians())).scaleForXY()
 
-        point.x = (intX * cos(yRot) + (intZ * cos(xRot) + intY * sin(xRot)) * sin(yRot)).scaleForXY()
-        point.y = (intY * cos(xRot) - intZ * sin(xRot)).scaleForXY()
+        allOscillators.forEach {
+            it.advance()
+        }
     }
 }
 
-@ExperimentalUnsignedTypes
-fun advanceOscillators() = Oscillators.allOscillators.values.forEach { it.advance() }
 
 fun Application.module() {
     install(DefaultHeaders)
@@ -158,7 +155,6 @@ fun producerThread(lib: EtherDreamLib, dac: Pointer) {
         val arr = EtherDreamPoint().toArray(1000)
         for (point in arr) {
             Oscillators.renderToPoint(point as EtherDreamPoint)
-            advanceOscillators()
         }
 
         val writeReturn = lib.etherdream_write(dac, arr, arr.size, PPS, 1)
