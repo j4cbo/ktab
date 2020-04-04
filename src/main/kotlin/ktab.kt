@@ -21,6 +21,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import java.io.File
+import java.lang.Thread.MAX_PRIORITY
 import java.lang.Thread.sleep
 import kotlin.concurrent.thread
 import kotlin.math.cos
@@ -28,38 +29,19 @@ import kotlin.math.sin
 
 const val PPS = 30000
 
-enum class Waveform { SIN, PLUS_TRI, MINUS_TRI, SQ10, SQ25, SQ50, SQ75, SQ90 }
-
-class WaveformControl(var waveform: Waveform = Waveform.SIN)
+class WaveformControl(var waveform: Oscillator.Waveform = Oscillator.Waveform.SIN)
 
 @ExperimentalUnsignedTypes
 object Oscillators {
 
-    data class Oscillator(val name: String, var freq: Double, var state: ULong = 0U) {
-        fun render(waveform: Waveform) =
-            if (freq == 0.0)
-                1.0
-            else
-                when (waveform) {
-                    Waveform.SIN -> sin((state.toDouble() / UInt.MAX_VALUE.toDouble()) * Math.PI * 2.0) / 2.0 + 0.5
-                    Waveform.PLUS_TRI -> state.toDouble() / UInt.MAX_VALUE.toDouble()
-                    Waveform.MINUS_TRI -> 1 - (state.toDouble() / UInt.MAX_VALUE.toDouble())
-                    Waveform.SQ10 -> if (state < (UInt.MAX_VALUE / 10U)) 1.0 else 0.0
-                    Waveform.SQ25 -> if (state < (UInt.MAX_VALUE / 4U)) 1.0 else 0.0
-                    Waveform.SQ50 -> if (state < (UInt.MAX_VALUE / 2U)) 1.0 else 0.0
-                    Waveform.SQ75 -> if (state < 3U * (UInt.MAX_VALUE / 4U)) 1.0 else 0.0
-                    Waveform.SQ90 -> if (state < 9U * (UInt.MAX_VALUE / 10U)) 1.0 else 0.0
-                }
-    }
-
-    val master = Oscillator("master", 100.0)
-    val x = Oscillator("x", 99.8)
-    val y = Oscillator("x", 100.0)
-    val z = Oscillator("x", 100.0)
-    val r = Oscillator("x", 99.5)
-    val g = Oscillator("x", 100.0)
-    val b = Oscillator("x", 100.5)
-    val blank = Oscillator("x", 0.0)
+    val master = Oscillator("master", 75.0)
+    val x = Oscillator("x", 74.8)
+    val y = Oscillator("y", 75.0)
+    val z = Oscillator("z", 75.0)
+    val r = Oscillator("r", 74.5)
+    val g = Oscillator("g", 75.0)
+    val b = Oscillator("b", 75.5)
+    val blank = Oscillator("blank", 0.0)
 
     val rWaveform = WaveformControl()
     val gWaveform = WaveformControl()
@@ -88,31 +70,27 @@ object Oscillators {
     }
 
     private fun Double.scaleForColor() = (this * UShort.MAX_VALUE.toDouble()).toInt().toUShort()
-    fun Double.scaleForXY() = (this * Short.MAX_VALUE.toDouble() / 3.0).toInt().toShort()
+    fun Double.scaleForXY() = ((this - 0.5) * Short.MAX_VALUE.toDouble()).toInt().toShort()
 
-    fun render(): EtherDreamPoint {
-        val outRed = (r.render(rWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
-        val outGreen = (g.render(gWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
-        val outBlue = (b.render(bWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
+    fun renderToPoint(point: EtherDreamPoint) {
+        point.r = (r.render(rWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
+        point.g = (g.render(gWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
+        point.b = (b.render(bWaveform.waveform) * blank.render(blankWaveform.waveform)).scaleForColor()
 
-        val intX = x.render(Waveform.SIN)
-        val intY = y.render(Waveform.SIN)
-        val intZ = z.render(Waveform.SIN)
+        val intX = x.render(Oscillator.Waveform.SIN)
+        val intY = y.render(Oscillator.Waveform.SIN)
+        val intZ = z.render(Oscillator.Waveform.SIN)
 
         val xRot = 0.0
         val yRot = 0.0
 
-        val outX = (intX * cos(yRot) + (intZ * cos(xRot) + intY * sin(xRot)) * sin(yRot)).scaleForXY()
-        val outY = (intY * cos(xRot) - intZ * sin(xRot)).scaleForXY()
-
-        return EtherDreamPoint(outX, outY, outRed, outGreen, outBlue, 0U, 0U, 0U)
+        point.x = (intX * cos(yRot) + (intZ * cos(xRot) + intY * sin(xRot)) * sin(yRot)).scaleForXY()
+        point.y = (intY * cos(xRot) - intZ * sin(xRot)).scaleForXY()
     }
 }
 
 @ExperimentalUnsignedTypes
-fun advanceOscillators() = Oscillators.allOscillators.values.forEach {
-    it.state += ((UInt.MAX_VALUE / PPS.toUInt()).toDouble() * it.freq).toUInt()
-}
+fun advanceOscillators() = Oscillators.allOscillators.values.forEach { it.advance() }
 
 fun Application.module() {
     install(DefaultHeaders)
@@ -177,12 +155,13 @@ fun producerThread(lib: EtherDreamLib, dac: Pointer) {
             return
         }
 
-        val points = (0..1000).map {
+        val arr = EtherDreamPoint().toArray(1000)
+        for (point in arr) {
+            Oscillators.renderToPoint(point as EtherDreamPoint)
             advanceOscillators()
-            Oscillators.render()
-        }.toTypedArray()
+        }
 
-        val writeReturn = lib.etherdream_write(dac, EtherDreamPoint().toArray(points), points.size, PPS, 1)
+        val writeReturn = lib.etherdream_write(dac, arr, arr.size, PPS, 1)
         if (writeReturn != 0) {
             println("write returned $writeReturn")
             return
@@ -192,7 +171,7 @@ fun producerThread(lib: EtherDreamLib, dac: Pointer) {
 }
 
 fun main(args: Array<String>) {
-/*
+
     val lib = Native.load("/Users/jacob/Code/j4cDAC/driver/libetherdream/etherdream.dylib", EtherDreamLib::class.java)
     lib.etherdream_lib_start()
     sleep(1000)
@@ -201,11 +180,9 @@ fun main(args: Array<String>) {
     val dac = lib.etherdream_get(0)
     println("connect returned ${lib.etherdream_connect(dac)}")
     
-    thread(isDaemon = true, start = false) {
+    thread(isDaemon = true, priority = MAX_PRIORITY) {
         producerThread(lib, dac)
     }
-
- */
 
     embeddedServer(Netty, 8080, watchPaths = listOf("BlogAppKt"), module = Application::module).start()
 }
