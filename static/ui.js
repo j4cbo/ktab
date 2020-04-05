@@ -306,7 +306,7 @@ var modeButton = createButton("mode",
 	root.style.fontSize = "20px";
 	function update() {
 		td.innerHTML = "MODE " + root.state;
-		post({mode: root.state});
+		post({mode: "MODE" + root.state});
 	}
 	clickify(root, function() {
 		root.state = root.state + 1;

@@ -31,7 +31,6 @@ open class Oscillator(override val name: String, var freq: Double, var state: UI
 
     override fun update(parts: List<String>) {
         freq = parts[0].toDouble()
-        println(freq)
     }
 }
 
@@ -54,7 +53,6 @@ open class OscillatorPlus(
             freq = parent.freq * multipliers[multiplierIndex]
             state = ((parent.state.toDouble() * multipliers[multiplierIndex]).toLong() + (offset * degreesToValue).toLong()).toULong().toUInt()
         } else {
-            println("plus to main")
             super.update(parts)
         }
     }
@@ -82,7 +80,6 @@ class OscillatorAbsolute(
             absoluteValue = parts[1].toDouble()
         } else {
             absoluteValue = null
-            println("abs to plus")
             super.update(parts)
         }
     }

@@ -27,7 +27,7 @@ import kotlin.concurrent.thread
 
 const val PPS = 30000
 
-
+@ExperimentalUnsignedTypes
 fun Application.module() {
     install(DefaultHeaders)
     install(CallLogging)
@@ -56,6 +56,7 @@ fun Application.module() {
     }
 }
 
+@ExperimentalUnsignedTypes
 @Structure.FieldOrder("x", "y", "r", "g", "b", "i", "u1", "u2")
 class EtherDreamPoint(
     @JvmField var x: Short,
@@ -110,13 +111,16 @@ fun main(args: Array<String>) {
     val lib = Native.load("/Users/jacob/Code/j4cDAC/driver/libetherdream/etherdream.dylib", EtherDreamLib::class.java)
     lib.etherdream_lib_start()
     sleep(1000)
-    println("${lib.etherdream_dac_count()}")
 
-    val dac = lib.etherdream_get(0)
-    println("connect returned ${lib.etherdream_connect(dac)}")
-    
-    thread(isDaemon = true, priority = MAX_PRIORITY) {
-        producerThread(lib, dac)
+    val dacCount = lib.etherdream_dac_count()
+    println("Found $dacCount DACs")
+    if (dacCount > 0) {
+        val dac = lib.etherdream_get(0)
+        println("connect returned ${lib.etherdream_connect(dac)}")
+
+        thread(isDaemon = true, priority = MAX_PRIORITY) {
+            producerThread(lib, dac)
+        }
     }
 
     embeddedServer(Netty, 8080, watchPaths = listOf("BlogAppKt"), module = Application::module).start()

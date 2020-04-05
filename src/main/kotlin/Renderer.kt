@@ -4,6 +4,8 @@ import kotlin.math.sin
 @ExperimentalUnsignedTypes
 object Renderer {
 
+    enum class Mode { MODE1, MODE2, MODE3, MODE4, MODE5, MODE6 }
+
     private val root = Oscillator("master", 75.0)
     private val xOsc = OscillatorPlus("x", 74.8, root)
     private val yOsc = OscillatorPlus("y", 75.0, root)
@@ -14,6 +16,7 @@ object Renderer {
     private val blankOsc = OscillatorAbsolute("blank", 0.0, root, absoluteValue = 1.0)
     private val xRot = DoubleControl("xRot", 0.0)
     private val yRot = DoubleControl("yRot", 0.0)
+    private val mode = makeEnumControl("mode", Mode.MODE1)
 
     private val allOscillators = listOf(root, xOsc, yOsc, zOsc, redOsc, greenOsc, blueOsc, blankOsc)
 
@@ -23,7 +26,7 @@ object Renderer {
         "xrot" to xRot, "yrot" to yRot,
         "xwfm" to xOsc.waveform, "ywfm" to yOsc.waveform, "zwfm" to zOsc.waveform,
         "redwfm" to redOsc.waveform, "greenwfm" to greenOsc.waveform, "bluewfm" to blueOsc.waveform,
-        "blankwfm" to blankOsc.waveform
+        "blankwfm" to blankOsc.waveform, "mode" to mode
     )
 
     fun handleUpdates(keys: List<String>) {
@@ -39,7 +42,7 @@ object Renderer {
     }
 
     private fun Double.scaleForColor() = (this * UShort.MAX_VALUE.toDouble()).toInt().toUShort()
-    private fun Double.scaleForXY() = ((this - 0.5) * Short.MAX_VALUE.toDouble()).toInt().toShort()
+    private fun Double.scaleForXY() = (this * Short.MAX_VALUE.toDouble()).toInt().toShort()
     private fun DoubleControl.asRadians() = (this.value / 180) * kotlin.math.PI
 
     fun renderToPoint(point: EtherDreamPoint) {
@@ -48,20 +51,38 @@ object Renderer {
         point.g = (greenOsc.render() * blank).scaleForColor()
         point.b = (blueOsc.render() * blank).scaleForColor()
 
-        val x = xOsc.render()
-        val y = yOsc.render()
-        val z = zOsc.render()
+        val x: Double
+        val y: Double
+        val z: Double
 
-        if (x < 0 || x > 1) {
-            throw Exception("what $x")
+        when (mode.value) {
+            Mode.MODE1 -> {
+                x = xOsc.render()
+                y = yOsc.render()
+                z = zOsc.render()
+            }
+            Mode.MODE2 -> {
+                val r = zOsc.render() - 0.5
+                x = xOsc.render() * r
+                y = yOsc.render() * r
+                z = 0.0
+            }
+            else -> {
+                x = xOsc.render()
+                y = yOsc.render()
+                z = zOsc.render()
+            }
         }
 
-        point.x = (x * cos(yRot.asRadians()) + (z * cos(
-            xRot.asRadians()
-        ) + y * sin(xRot.asRadians())) * sin(yRot.asRadians())).scaleForXY()
-        point.y = (y * cos(xRot.asRadians()) - z * sin(
-            xRot.asRadians()
-        )).scaleForXY()
+        val x1 = x - 0.5
+        val y1 = y - 0.5
+        val z1 = z - 0.5
+
+        val xo = x1 * cos(yRot.asRadians()) + (z1 * cos(xRot.asRadians()) + y1 * sin(xRot.asRadians())) * sin(yRot.asRadians())
+        val yo = y1 * cos(xRot.asRadians()) - z1 * sin(xRot.asRadians())
+
+        point.x = (xo * 0.45).scaleForXY()
+        point.y = (yo * 0.45 + 0.48).scaleForXY()
 
         allOscillators.forEach {
             it.advance()
