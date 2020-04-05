@@ -45,11 +45,11 @@ object Renderer {
     private fun Double.scaleForXY() = (this * Short.MAX_VALUE.toDouble()).toInt().toShort()
     private fun DoubleControl.asRadians() = (this.value / 180) * kotlin.math.PI
 
-    fun renderToPoint(point: EtherDreamPoint) {
+    fun renderToBuffer(buffer: ShortArray, offset: Int) {
         val blank = blankOsc.render()
-        point.r = (redOsc.render() * blank).scaleForColor()
-        point.g = (greenOsc.render() * blank).scaleForColor()
-        point.b = (blueOsc.render() * blank).scaleForColor()
+        val r = (redOsc.render() * blank).scaleForColor()
+        val g = (greenOsc.render() * blank).scaleForColor()
+        val b = (blueOsc.render() * blank).scaleForColor()
 
         val x: Double
         val y: Double
@@ -62,9 +62,9 @@ object Renderer {
                 z = zOsc.render()
             }
             Mode.MODE2 -> {
-                val r = zOsc.render() - 0.5
-                x = xOsc.render() * r
-                y = yOsc.render() * r
+                val multiplier = zOsc.render() - 0.5
+                x = xOsc.render() * multiplier
+                y = yOsc.render() * multiplier
                 z = 0.0
             }
             else -> {
@@ -81,8 +81,11 @@ object Renderer {
         val xo = x1 * cos(yRot.asRadians()) + (z1 * cos(xRot.asRadians()) + y1 * sin(xRot.asRadians())) * sin(yRot.asRadians())
         val yo = y1 * cos(xRot.asRadians()) - z1 * sin(xRot.asRadians())
 
-        point.x = (xo * 0.45).scaleForXY()
-        point.y = (yo * 0.45 + 0.48).scaleForXY()
+        buffer[offset * 8 + 0] = (xo * 0.45).scaleForXY()
+        buffer[offset * 8 + 1] = (yo * 0.45 + 0.48).scaleForXY()
+        buffer[offset * 8 + 2] = r.toShort()
+        buffer[offset * 8 + 3] = g.toShort()
+        buffer[offset * 8 + 4] = b.toShort()
 
         allOscillators.forEach {
             it.advance()

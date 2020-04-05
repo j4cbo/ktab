@@ -84,20 +84,22 @@ interface EtherDreamLib : Library {
     fun etherdream_stop(dac: Pointer): Int
 }
 
-fun producerThread(lib: EtherDreamLib, dac: Pointer) {
+private const val FRAME = 1000
+
+fun producerThread(dac: Pointer) {
+    val buffer = ShortArray(FRAME * 8) { 0 }
     while (true) {
-        val waitReturn = lib.etherdream_wait_for_ready(dac)
+        val waitReturn = EtherDream.etherdream_wait_for_ready(dac)
         if (waitReturn != 0) {
             println("wait returned $waitReturn")
             return
         }
 
-        val arr = EtherDreamPoint().toArray(1000)
-        for (point in arr) {
-            Renderer.renderToPoint(point as EtherDreamPoint)
+        for (i in 0 until FRAME) {
+            Renderer.renderToBuffer(buffer, i)
         }
 
-        val writeReturn = lib.etherdream_write(dac, arr, arr.size, PPS, 1)
+        val writeReturn = EtherDream.etherdream_write(dac, buffer, FRAME, PPS, 1)
         if (writeReturn != 0) {
             println("write returned $writeReturn")
             return
@@ -108,18 +110,17 @@ fun producerThread(lib: EtherDreamLib, dac: Pointer) {
 
 fun main(args: Array<String>) {
 
-    val lib = Native.load("/Users/jacob/Code/j4cDAC/driver/libetherdream/etherdream.dylib", EtherDreamLib::class.java)
-    lib.etherdream_lib_start()
+    EtherDream.etherdream_lib_start()
     sleep(1000)
 
-    val dacCount = lib.etherdream_dac_count()
+    val dacCount = EtherDream.etherdream_dac_count()
     println("Found $dacCount DACs")
     if (dacCount > 0) {
-        val dac = lib.etherdream_get(0)
-        println("connect returned ${lib.etherdream_connect(dac)}")
+        val dac = EtherDream.etherdream_get(0)
+        println("connect returned ${EtherDream.etherdream_connect(dac)}")
 
         thread(isDaemon = true, priority = MAX_PRIORITY) {
-            producerThread(lib, dac)
+            producerThread(dac)
         }
     }
 
