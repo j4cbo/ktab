@@ -1,3 +1,4 @@
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -43,13 +44,13 @@ object Renderer {
 
     private fun Double.scaleForColor() = (this * UShort.MAX_VALUE.toDouble()).toInt().toUShort()
     private fun Double.scaleForXY() = (this * Short.MAX_VALUE.toDouble()).toInt().toShort()
-    private fun DoubleControl.asRadians() = (this.value / 180) * kotlin.math.PI
+    private fun DoubleControl.asRadians() = (this.value / 180) * PI
 
     fun renderToBuffer(buffer: ShortArray, offset: Int) {
-        val blank = blankOsc.render()
-        val r = (redOsc.render() * blank).scaleForColor()
-        val g = (greenOsc.render() * blank).scaleForColor()
-        val b = (blueOsc.render() * blank).scaleForColor()
+        val blank = blankOsc.renderUnipolar()
+        val r = (redOsc.renderUnipolar() * blank).scaleForColor()
+        val g = (greenOsc.renderUnipolar() * blank).scaleForColor()
+        val b = (blueOsc.renderUnipolar() * blank).scaleForColor()
 
         val x: Double
         val y: Double
@@ -57,32 +58,53 @@ object Renderer {
 
         when (mode.value) {
             Mode.MODE1 -> {
-                x = xOsc.render()
-                y = yOsc.render()
-                z = zOsc.render()
+                x = xOsc.renderBipolar()
+                y = yOsc.renderBipolar()
+                z = zOsc.renderBipolar()
             }
             Mode.MODE2 -> {
-                val multiplier = zOsc.render() - 0.5
-                x = xOsc.render() * multiplier
-                y = yOsc.render() * multiplier
+                val multiplier = zOsc.renderBipolar()
+                x = xOsc.renderBipolar() * multiplier
+                y = yOsc.renderBipolar() * multiplier
                 z = 0.0
             }
-            else -> {
-                x = xOsc.render()
-                y = yOsc.render()
-                z = zOsc.render()
+            Mode.MODE3 -> {
+                val multiplier = sin((xOsc.state + yOsc.state).toFullRangeRadians())
+                check(multiplier in -1.0..1.0)
+                x = xOsc.renderBipolar() * multiplier
+                y = yOsc.renderBipolar() * multiplier
+                z = zOsc.renderBipolar()
+            }
+            Mode.MODE4 -> {
+                x = xOsc.renderBipolar() * sin(xOsc.state.toFullRangeRadians() * 1.2)
+                y = yOsc.renderBipolar()
+                z = zOsc.renderBipolar()
+            }
+            Mode.MODE5 -> {
+                val multiplier = sin((xOsc.state).toFullRangeRadians())
+                check(multiplier in -1.0..1.0)
+                x = xOsc.renderBipolar() * multiplier
+                y = yOsc.renderBipolar() * multiplier
+                z = zOsc.renderBipolar()
+            }
+            Mode.MODE6 -> {
+                val multiplier = (sin((yOsc.state).toFullRangeRadians() + PI/2.0) + 3.0) / 4.0
+                check(multiplier in 0.0..1.0)
+                x = xOsc.renderBipolar() * multiplier
+                y = yOsc.renderBipolar() * multiplier
+                z = zOsc.renderBipolar() / 3.0
             }
         }
 
-        val x1 = x - 0.5
-        val y1 = y - 0.5
-        val z1 = z - 0.5
+        check(x in -1.0..1.0)
+        check(y in -1.0..1.0)
+        check(z in -1.0..1.0)
 
-        val xo = x1 * cos(yRot.asRadians()) + (z1 * cos(xRot.asRadians()) + y1 * sin(xRot.asRadians())) * sin(yRot.asRadians())
-        val yo = y1 * cos(xRot.asRadians()) - z1 * sin(xRot.asRadians())
+        val xo = x * cos(yRot.asRadians()) + (z * cos(xRot.asRadians()) + y * sin(xRot.asRadians())) * sin(yRot.asRadians())
+        val yo = y * cos(xRot.asRadians()) - z * sin(xRot.asRadians())
 
-        buffer[offset * 8 + 0] = (xo * 0.45).scaleForXY()
-        buffer[offset * 8 + 1] = (yo * 0.45 + 0.48).scaleForXY()
+        buffer[offset * 8 + 0] = (xo * 0.18).scaleForXY()
+        buffer[offset * 8 + 1] = (yo * 0.18 + 0.48).scaleForXY()
         buffer[offset * 8 + 2] = r.toShort()
         buffer[offset * 8 + 3] = g.toShort()
         buffer[offset * 8 + 4] = b.toShort()

@@ -2,18 +2,27 @@ import java.lang.Math.cbrt
 import kotlin.math.sin
 
 @ExperimentalUnsignedTypes
+fun UInt.toFullRangeRadians() = toDouble() * Math.PI * 2.0 / UInt.MAX_VALUE.toDouble()
+
+@ExperimentalUnsignedTypes
 open class Oscillator(override val name: String, var freq: Double, var state: UInt = 0U): Control() {
 
     enum class Waveform { SIN, SINR3, PLUS_TRI, MINUS_TRI, SQ10, SQ25, SQ50, SQ75, SQ90 }
 
-    fun render(waveform: Waveform) =
+    fun renderUnipolar(waveform: Waveform) =
+        renderImpl(waveform).also { check(it in 0.0..1.0) }
+
+    fun renderBipolar(waveform: Waveform) =
+        (renderImpl(waveform).also { check(it in 0.0..1.0) } - 0.5) * 2.0
+
+    private fun renderImpl(waveform: Waveform) =
         if (freq == 0.0)
             1.0
         else
             when (waveform) {
-                Waveform.SIN -> sin((state.toDouble() / UInt.MAX_VALUE.toDouble()) * Math.PI * 2.0) / 2.0 + 0.5
+                Waveform.SIN -> sin(state.toFullRangeRadians()) / 2.0 + 0.5
                 Waveform.SINR3 -> {
-                    val a = sin((state.toDouble() / UInt.MAX_VALUE.toDouble()) * Math.PI * 2.0)
+                    val a = sin(state.toFullRangeRadians())
                     (if (a > 0) cbrt(a) else -cbrt(-a)) / 2.0 + 0.5
                 }
                 Waveform.PLUS_TRI -> state.toDouble() / UInt.MAX_VALUE.toDouble()
@@ -44,7 +53,9 @@ open class OscillatorPlus(
 ) : Oscillator(name, freq, state) {
     val waveform = makeEnumControl(name + "Waveform", waveform)
 
-    open fun render() = render(waveform.value)
+    open fun renderUnipolar() = renderUnipolar(waveform.value)
+
+    open fun renderBipolar() = renderBipolar(waveform.value)
 
     override fun update(parts: List<String>) {
         if (parts[0] == "phase") {
@@ -73,7 +84,10 @@ class OscillatorAbsolute(
     private var absoluteValue: Double? = null
 ) : OscillatorPlus(name, freq, parent, state, waveform) {
 
-    override fun render() = absoluteValue ?: super.render()
+    override fun renderUnipolar() = absoluteValue ?: super.renderUnipolar()
+
+    // renderBipolar is for X/Y values - don't want to use a constant for those!
+    override fun renderBipolar() = throw NotImplementedError("do not use renderBipolar on oscillatorAbsolute")
 
     override fun update(parts: List<String>) {
         if (parts[0] == "absolute") {
