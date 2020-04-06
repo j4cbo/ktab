@@ -13,6 +13,6 @@ public class EtherDream {
     public static native int etherdream_stop(Pointer dac);
     
     static {
-        Native.register("/Users/jacob/Code/j4cDAC/driver/libetherdream/etherdream.dylib");
+        Native.register("etherdream");
     }
 }
